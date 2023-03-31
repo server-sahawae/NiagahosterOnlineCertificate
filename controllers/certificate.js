@@ -3,8 +3,10 @@ const {
   DATA_NOT_FOUND,
   CERTIFICATE_UNAVAILABLE,
 } = require("../constants/ErrorKeys");
-const createCertificate = require("../helpers/CreateCertificate");
 const { Certificate, Event, CertificateTemplate, Logo } = require("../models");
+const redisText = require("../config/redisText");
+const { loggerInfo } = require("../helpers/loggerDebug");
+const redisFile = require("../config/redisFiles");
 
 module.exports = class Controller {
   static async bulkInsertParticipants(req, res, next) {
@@ -50,14 +52,26 @@ module.exports = class Controller {
 
   static async getCertificateByPhone(req, res, next) {
     try {
-      const { baseurl: baseUrl, eventid: EventId } = req.headers;
+      const { eventid: EventId } = req.headers;
       const { phone } = req.params;
-      const data = await Certificate.findOne({
-        where: { phone, EventId },
-      });
-      if (!data) throw { name: DATA_NOT_FOUND };
-      if (!data.file) throw { name: CERTIFICATE_UNAVAILABLE };
-      const { name, status, file } = data;
+      const redisItem = await redisFile.get(
+        `CertificateByPhone:${EventId}:${phone}`
+      );
+      let result;
+      if (!redisItem) {
+        result = await Certificate.findOne({
+          where: { phone, EventId },
+        });
+        if (!result) throw { name: DATA_NOT_FOUND };
+        if (!result.file) throw { name: CERTIFICATE_UNAVAILABLE };
+        loggerInfo(`SET REDIS: CertificateByPhone:${EventId}:${phone}`);
+        await redisFile.set(
+          `CertificateByPhone:${EventId}:${phone}`,
+          JSON.stringify(result, null, 2),
+          { EX: 60 * 60 * 24 }
+        );
+      } else result = JSON.parse(redisItem);
+      const { name, status, file } = result;
 
       console.log(name);
       res.setHeader(
@@ -78,10 +92,24 @@ module.exports = class Controller {
   static async getCertificateListByEventId(req, res, next) {
     try {
       const { EventId } = req.params;
-      const result = await Certificate.findAll({
-        attributes: ["id", "name", "origin", "phone", "status", "email"],
-        where: { EventId },
-      });
+      const redisItem = await redisText.get(
+        `CertificateListByEventId:${EventId}`
+      );
+      let result;
+      if (!redisItem) {
+        result = await Certificate.findAll({
+          attributes: ["id", "name", "origin", "phone", "status", "email"],
+          where: { EventId },
+        });
+        loggerInfo(`SET CertificateListByEventId:${EventId}`);
+        await redisText.set(
+          `CertificateListByEventId:${EventId}`,
+          JSON.stringify(result, null, 2),
+          { EX: 60 * 60 * 24 }
+        );
+      } else {
+        result = JSON.parse(redisItem);
+      }
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -91,36 +119,52 @@ module.exports = class Controller {
   static async getCertificateVerification(req, res, next) {
     try {
       const { CertificateId } = req.params;
-      const data = await Certificate.findOne({
-        where: { id: CertificateId },
-        attributes: ["id", "name", "status"],
-        include: [
-          {
-            model: Event,
-            attributes: [
-              "name",
-              "location",
-              "description",
-              "time",
-              "duration",
-              ["updatedAt", "signedAt"],
-            ],
-          },
-          {
-            model: CertificateTemplate,
-            as: "Signature",
-            attributes: [["signName", "name"]],
-            include: [
-              {
-                model: Logo,
-                as: "Company",
-                attributes: ["name"],
-              },
-            ],
-          },
-        ],
-      });
-      res.status(200).json(data);
+      const redisItem = await redisText.get(
+        `CertificateVerification:${CertificateId}`
+      );
+      let result;
+      if (!redisItem) {
+        result = await Certificate.findOne({
+          where: { id: CertificateId },
+          attributes: ["id", "name", "status"],
+          include: [
+            {
+              model: Event,
+              attributes: [
+                "name",
+                "location",
+                "description",
+                "time",
+                "duration",
+                ["updatedAt", "signedAt"],
+              ],
+            },
+            {
+              model: CertificateTemplate,
+              as: "Signature",
+              attributes: [["signName", "name"]],
+              include: [
+                {
+                  model: Logo,
+                  as: "Company",
+                  attributes: ["name"],
+                },
+              ],
+            },
+          ],
+        });
+        if (!result) throw { name: DATA_NOT_FOUND };
+        loggerInfo(`SET REDIS: CertificateVerification:${CertificateId}`);
+
+        await redisText.set(
+          `CertificateVerification:${CertificateId}`,
+          JSON.stringify(result, null, 2),
+          { EX: 60 * 60 * 24 }
+        );
+      } else {
+        result = JSON.parse(redisItem);
+      }
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }

@@ -24,6 +24,7 @@
     "express-fileupload": "^1.4.0",
     "mysql2": "^3.2.0",
     "qrcode": "^1.5.1",
+    "redis": "^4.6.5",
     "sequelize": "^6.25.5",
     "sequelize-cli": "^6.5.2",
     "uuid": "^9.0.0"
