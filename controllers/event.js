@@ -1,5 +1,4 @@
 const { Op } = require("sequelize");
-const sharp = require("sharp");
 const { Event } = require("../models");
 
 module.exports = class Controller {
@@ -56,27 +55,6 @@ module.exports = class Controller {
       res.status(200).json(result);
     } catch (error) {
       console.log(error.errors);
-      next(error);
-    }
-  }
-
-  static async patchEvent(req, res, next) {
-    try {
-      const { image: imageData } = req.files;
-      const { EventId } = req.body;
-      const image = await sharp(Buffer.from(imageData.data))
-        .toFormat("webp")
-        .resize(1024)
-        .toBuffer();
-      const data = await Event.update(
-        { image },
-        {
-          where: { id: EventId },
-        }
-      );
-      res.status(200).json(data);
-    } catch (error) {
-      console.log(error);
       next(error);
     }
   }
