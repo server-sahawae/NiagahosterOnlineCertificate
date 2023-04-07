@@ -52,6 +52,7 @@ module.exports = class Controller {
 
   static async getCertificateByPhone(req, res, next) {
     try {
+      console.log("on");
       const { eventid: EventId } = req.headers;
       const { phone } = req.params;
       const redisItem = await redisFile.get(
@@ -75,17 +76,8 @@ module.exports = class Controller {
           { EX: 60 * 60 * 24 }
         );
       } else result = JSON.parse(redisItem);
-      const { name, status, file } = result;
+      const { file } = result;
 
-      console.log(name);
-      res.setHeader(
-        "Content-Disposition",
-        "attachment; filename=" +
-          status.split(" ").join("_") +
-          "-" +
-          name.split(" ").join("_") +
-          ".png"
-      );
       res.type("image/png").send(Buffer.from(file));
     } catch (error) {
       console.log(error);
