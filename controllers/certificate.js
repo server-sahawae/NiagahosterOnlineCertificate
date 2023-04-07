@@ -58,6 +58,10 @@ module.exports = class Controller {
         `CertificateByPhone:${EventId}:${phone}`
       );
       let result;
+      await Certificate.update(
+        { accessedAt: new Date() },
+        { where: { EventId, phone } }
+      );
       if (!redisItem) {
         result = await Certificate.findOne({
           where: { phone, EventId },
@@ -123,6 +127,10 @@ module.exports = class Controller {
         `CertificateVerification:${CertificateId}`
       );
       let result;
+      await Certificate.update(
+        { accessedAt: new Date() },
+        { where: { id: CertificateId } }
+      );
       if (!redisItem) {
         result = await Certificate.findOne({
           where: { id: CertificateId },
@@ -147,7 +155,7 @@ module.exports = class Controller {
                 {
                   model: Logo,
                   as: "Company",
-                  attributes: ["name"],
+                  attributes: ["id", "name"],
                 },
               ],
             },

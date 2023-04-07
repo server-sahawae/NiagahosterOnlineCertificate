@@ -31,6 +31,7 @@ module.exports = (sequelize, DataTypes) => {
       email: DataTypes.STRING,
       EventId: DataTypes.UUID,
       CertificateTemplateId: DataTypes.UUID,
+      accessedAt: DataTypes.DATE,
       // fileType: DataTypes.STRING,
       file: DataTypes.BLOB("medium"),
     },

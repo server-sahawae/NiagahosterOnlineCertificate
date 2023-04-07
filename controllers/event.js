@@ -100,6 +100,7 @@ module.exports = class Controller {
     //REDIS
     try {
       const { EventId } = req.params;
+      // await deleteRedisKeys(EventId);
       const redisItem = await redisFile.get(`Event:Image:${EventId}`);
       let result;
       if (!redisItem) {
@@ -114,7 +115,7 @@ module.exports = class Controller {
           EX: 60 * 60 * 24,
         });
       } else result = JSON.parse(redisItem);
-      res.type("image/webp").send(Buffer.from(result));
+      res.type("image/png").send(Buffer.from(result));
     } catch (error) {
       next(error);
     }
