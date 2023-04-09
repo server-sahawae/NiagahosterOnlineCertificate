@@ -51,7 +51,7 @@ module.exports = {
       {
         participant: {
           uploadedFile: {
-            fields: ["EventId", "phone"],
+            fields: ["EventId", "phone", "email"],
           },
         },
       }
